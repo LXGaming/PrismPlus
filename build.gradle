@@ -1,0 +1,88 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        maven {
+            url("http://files.minecraftforge.net/maven")
+        }
+    }
+
+    dependencies {
+        classpath("net.minecraftforge.gradle:ForgeGradle:2.2-SNAPSHOT")
+    }
+}
+
+apply plugin: "net.minecraftforge.gradle.forge"
+apply plugin: "java"
+
+def signFile = "../.gradle/sign.gradle"
+if (file(signFile).exists()) {
+    apply from: signFile
+}
+
+targetCompatibility = 1.8
+sourceCompatibility = 1.8
+
+group = "io.github.lxgaming"
+archivesBaseName = "PrismPlus"
+version = "1.0.0-BETA"
+
+minecraft {
+    version = "1.10.2-12.18.3.2422"
+    runDir = "run"
+    mappings = "snapshot_20161111"
+}
+
+configurations {
+    provided {
+        compile.extendsFrom(provided)
+    }
+
+    build {
+        if (project.tasks.findByName("signJar")) {
+            return finalizedBy(signJar)
+        }
+
+        return doLast {
+            println("========== [WARNING] ==========")
+            println()
+            println("   This build is not signed!   ")
+            println()
+            println("========== [WARNING] ==========")
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url("https://repo.spongepowered.org/maven")
+    }
+}
+
+dependencies {
+    provided("org.spongepowered:spongeapi:5.2.+")
+    provided(fileTree(dir: "./libs/", include: ["Prism-3.0.0-*.jar"]))
+}
+
+jar {
+    from {
+        (configurations.compile - configurations.provided).collect {
+            if (it.isDirectory()) {
+                return it
+            }
+            return zipTree(it)
+        }
+    }
+
+    exclude("dummyThing")
+}
+
+processResources {
+    from("LICENSE")
+    rename("LICENSE", "LICENSE-" + archivesBaseName)
+
+    from (sourceSets.main.resources.srcDirs) {
+        include("mcmod.info")
+        expand("version":version, "mcversion":minecraft.version)
+    }
+}
