@@ -24,7 +24,7 @@ sourceCompatibility = 1.8
 
 group = "io.github.lxgaming"
 archivesBaseName = "PrismPlus"
-version = "1.0.0-BETA"
+version = "1.0.0"
 
 minecraft {
     version = "1.10.2-12.18.3.2422"
@@ -60,8 +60,8 @@ repositories {
 }
 
 dependencies {
-    provided("org.spongepowered:spongeapi:5.2.+")
     provided(fileTree(dir: "./libs/", include: ["Prism-3.0.0-*.jar"]))
+    provided("org.spongepowered:spongeapi:5.2.+")
 }
 
 jar {
