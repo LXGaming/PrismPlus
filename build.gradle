@@ -27,9 +27,10 @@ archivesBaseName = "PrismPlus"
 version = "1.0.0"
 
 minecraft {
-    version = "1.10.2-12.18.3.2422"
+    version = "1.10.2-12.18.3.2511"
     runDir = "run"
     mappings = "snapshot_20161111"
+    makeObfSourceJar = false
 }
 
 configurations {
@@ -70,6 +71,7 @@ jar {
             if (it.isDirectory()) {
                 return it
             }
+
             return zipTree(it)
         }
     }
