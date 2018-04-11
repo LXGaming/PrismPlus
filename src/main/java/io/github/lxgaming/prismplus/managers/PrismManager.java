@@ -18,101 +18,80 @@ package io.github.lxgaming.prismplus.managers;
 
 import com.helion3.prism.Prism;
 import com.helion3.prism.api.query.QuerySession;
+import com.helion3.prism.listeners.ChangeInventoryListener;
+import com.helion3.prism.listeners.DropItemListener;
 import com.helion3.prism.storage.h2.H2StorageAdapter;
 import com.helion3.prism.storage.mongodb.MongoStorageAdapter;
 import com.helion3.prism.storage.mysql.MySQLStorageAdapter;
 import com.helion3.prism.util.AsyncCallback;
 import com.helion3.prism.util.AsyncUtil;
 import io.github.lxgaming.prismplus.PrismPlus;
+import io.github.lxgaming.prismplus.configuration.Config;
+import io.github.lxgaming.prismplus.configuration.categories.OverrideCategory;
 import io.github.lxgaming.prismplus.entries.LookupCallback;
 import io.github.lxgaming.prismplus.storage.H2Storage;
 import io.github.lxgaming.prismplus.storage.MySQLStorage;
-import io.github.lxgaming.prismplus.util.Reference;
-import io.github.lxgaming.prismplus.util.SpongeHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.spongepowered.api.Sponge;
-import org.spongepowered.api.plugin.PluginContainer;
+import org.spongepowered.common.event.RegisteredListener;
+import org.spongepowered.common.event.SpongeEventManager;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.List;
+import java.util.function.Predicate;
 
-public class PrismManager {
-
-    public void checkVersion() {
-        if (!isPrismAvailable()) {
-            PrismPlus.getInstance().getLogger().warn("Prism is not available!");
-            return;
+public final class PrismManager {
+    
+    public static void removeListener() {
+        if (isPrismAvailable()) {
+            invokeUnregister(handler -> handler.getHandle() instanceof ChangeInventoryListener);
+            invokeUnregister(handler -> handler.getHandle() instanceof DropItemListener);
         }
-
-        PluginContainer pluginContainer = Sponge.getPluginManager().getPlugin("prism").orElse(null);
-        if (pluginContainer == null) {
-            PrismPlus.getInstance().getLogger().warn("Failed to get Prism information!");
-            return;
-        }
-
-        String version = pluginContainer.getVersion().orElse(null);
-        if (StringUtils.isNotBlank(version) && getSupportedVersions().contains(version)) {
-            PrismPlus.getInstance().getLogger().info("Found supported Prism v{}", version);
-            return;
-        }
-
-        PrismPlus.getInstance().getLogger().warn("Found unsupported Prism v{}, This version may not work well with {}!", version, Reference.PLUGIN_NAME);
     }
-
+    
     /**
      * Appends AM / PM to the default 12-Hour format.
      */
-    public void updateDateFormat() {
-        if (!isPrismAvailable()) {
-            return;
-        }
-
-        String dateFormat = Prism.getConfig().getNode("display", "dateFormat").getString();
-        if (StringUtils.isNotBlank(dateFormat) && dateFormat.equals("d/M/yy hh:mm:ss")) {
-            Prism.getConfig().getNode("display", "dateFormat").setValue(dateFormat + " a");
+    public static void updateDateFormat() {
+        if (isPrismAvailable()) {
+            String dateFormat = Prism.getConfig().getNode("display", "dateFormat").getString();
+            if (StringUtils.isNotBlank(dateFormat) && dateFormat.equals("d/M/yy hh:mm:ss")) {
+                Prism.getConfig().getNode("display", "dateFormat").setValue(dateFormat + " a");
+            }
         }
     }
-
-    public void purgeDatabase() {
-        if (!isPrismAvailable() || PrismPlus.getInstance().getConfig() == null || !PrismPlus.getInstance().getConfig().isPurgeOverride()) {
+    
+    public static void purgeDatabase() {
+        if (!isPrismAvailable() || !PrismPlus.getInstance().getConfig().map(Config::getOverrideCategory).map(OverrideCategory::isPurge).orElse(false)) {
             return;
         }
-
+        
         if (Prism.getStorageAdapter() instanceof H2StorageAdapter) {
-            Sponge.getGame().getScheduler().createTaskBuilder().async().execute(() -> {
-                new H2Storage().purge();
-            }).submit(PrismPlus.getInstance());
+            Sponge.getGame().getScheduler().createTaskBuilder().async().execute(() -> new H2Storage().purge()).submit(PrismPlus.getInstance().getPluginContainer());
             return;
         }
-
+        
         if (Prism.getStorageAdapter() instanceof MySQLStorageAdapter) {
-            Sponge.getGame().getScheduler().createTaskBuilder().async().execute(() -> {
-                new MySQLStorage().purge();
-            }).submit(PrismPlus.getInstance());
+            Sponge.getGame().getScheduler().createTaskBuilder().async().execute(() -> new MySQLStorage().purge()).submit(PrismPlus.getInstance().getPluginContainer());
             return;
         }
-
+        
         if (Prism.getStorageAdapter() instanceof MongoStorageAdapter) {
             return;
         }
-
+        
         PrismPlus.getInstance().getLogger().warn("Cannot purge as selected storage is not supported!");
     }
-
+    
     /**
      * @param session The {@link com.helion3.prism.api.query.QuerySession QuerySession}.
      */
-    public void lookup(QuerySession session) {
-        if (!isPrismAvailable()) {
-            return;
+    public static void lookup(QuerySession session) {
+        if (isPrismAvailable()) {
+            session.getQuery().setLimit(Prism.getConfig().getNode("query", "lookup", "limit").getInt());
+            invokeAsync(session, new LookupCallback(session));
         }
-
-        session.getQuery().setLimit(Prism.getConfig().getNode("query", "lookup", "limit").getInt());
-        invokeAsync(session, new LookupCallback(session));
     }
-
+    
     /**
      * Invokes the private method
      * {@link com.helion3.prism.util.AsyncUtil#async(QuerySession, AsyncCallback) async(QuerySession, AsyncCallback)}.
@@ -120,30 +99,35 @@ public class PrismManager {
      * @param session  The {@link com.helion3.prism.api.query.QuerySession QuerySession}.
      * @param callback The {@link com.helion3.prism.util.AsyncCallback AsyncCallback}.
      */
-    public void invokeAsync(QuerySession session, AsyncCallback callback) {
+    private static void invokeAsync(QuerySession session, AsyncCallback callback) {
         try {
             Method asyncMethod = AsyncUtil.class.getDeclaredMethod("async", QuerySession.class, AsyncCallback.class);
             asyncMethod.setAccessible(true);
             asyncMethod.invoke(null, session, callback);
-        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException | RuntimeException ex) {
-            PrismPlus.getInstance().getLogger().error("Encountered an error processing {}::invokeAsync", SpongeHelper.class.getSimpleName(), ex);
+        } catch (Exception ex) {
+            PrismPlus.getInstance().getLogger().error("Encountered an error processing {}::invokeAsync", "PrismManager", ex);
             ex.printStackTrace();
         }
     }
-
-    public boolean isPrismAvailable() {
-        if (!Sponge.getPluginManager().isLoaded("prism")) {
-            return false;
+    
+    /**
+     * Invokes the private method
+     * {@link org.spongepowered.common.event.SpongeEventManager#unregister(Predicate) unregister(Predicate)}.
+     *
+     * @param unregister The {@link java.util.function.Predicate Predicate}.
+     */
+    private static void invokeUnregister(Predicate<RegisteredListener<?>> unregister) {
+        try {
+            Method unregisterMethod = SpongeEventManager.class.getDeclaredMethod("unregister", Predicate.class);
+            unregisterMethod.setAccessible(true);
+            unregisterMethod.invoke(Sponge.getEventManager(), unregister);
+        } catch (Exception ex) {
+            PrismPlus.getInstance().getLogger().error("Encountered an error processing {}::invokeUnregister", "PrismManager", ex);
+            ex.printStackTrace();
         }
-
-        if (Prism.getPlugin() != null && Prism.getConfig() != null) {
-            return true;
-        }
-
-        return false;
     }
-
-    public List<String> getSupportedVersions() {
-        return Arrays.asList("3.0.0");
+    
+    private static boolean isPrismAvailable() {
+        return Sponge.getPluginManager().isLoaded("prism") && Prism.getPlugin() != null && Prism.getConfig() != null;
     }
 }

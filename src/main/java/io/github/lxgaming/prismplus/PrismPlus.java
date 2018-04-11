@@ -17,24 +17,33 @@
 package io.github.lxgaming.prismplus;
 
 import com.google.inject.Inject;
+import io.github.lxgaming.prismplus.commands.PrismPlusCommand;
+import io.github.lxgaming.prismplus.configuration.Config;
 import io.github.lxgaming.prismplus.configuration.Configuration;
-import io.github.lxgaming.prismplus.entries.Config;
+import io.github.lxgaming.prismplus.listeners.CommandListener;
+import io.github.lxgaming.prismplus.listeners.InteractListener;
+import io.github.lxgaming.prismplus.listeners.InventoryListener;
+import io.github.lxgaming.prismplus.managers.CommandManager;
 import io.github.lxgaming.prismplus.managers.PrismManager;
-import io.github.lxgaming.prismplus.managers.RegistryManager;
-import io.github.lxgaming.prismplus.util.Metrics;
 import io.github.lxgaming.prismplus.util.Reference;
+import ninja.leaping.configurate.objectmapping.GuiceObjectMapperFactory;
 import org.slf4j.Logger;
+import org.spongepowered.api.Sponge;
 import org.spongepowered.api.config.DefaultConfig;
 import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.Order;
+import org.spongepowered.api.event.game.state.GameConstructionEvent;
 import org.spongepowered.api.event.game.state.GameInitializationEvent;
+import org.spongepowered.api.event.game.state.GamePostInitializationEvent;
 import org.spongepowered.api.event.game.state.GamePreInitializationEvent;
 import org.spongepowered.api.event.game.state.GameStartedServerEvent;
 import org.spongepowered.api.event.game.state.GameStoppingEvent;
 import org.spongepowered.api.plugin.Dependency;
 import org.spongepowered.api.plugin.Plugin;
+import org.spongepowered.api.plugin.PluginContainer;
 
 import java.nio.file.Path;
+import java.util.Optional;
 
 @Plugin(
         id = Reference.PLUGIN_ID,
@@ -43,93 +52,99 @@ import java.nio.file.Path;
         description = Reference.DESCRIPTION,
         authors = {Reference.AUTHORS},
         url = Reference.WEBSITE,
-        dependencies = {@Dependency(id = "prism", optional = false)}
+        dependencies = {@Dependency(id = "prism")}
 )
 public class PrismPlus {
-
+    
     private static PrismPlus instance;
-
+    
+    @Inject
+    private PluginContainer pluginContainer;
+    
     @Inject
     private Logger logger;
-
+    
     @Inject
     @DefaultConfig(sharedRoot = true)
     private Path path;
-
-    // @Inject - Metrics are disabled due to an issue that can cause the server to crash on startup.
-    private Metrics metrics;
-
+    
+    @Inject
+    private GuiceObjectMapperFactory factory;
+    
     private Configuration configuration;
-    private PrismManager prismManager;
-    private RegistryManager registryManager;
-
+    
     @Listener
-    public void onGamePreInitialization(GamePreInitializationEvent event) {
+    public void onGameConstruction(GameConstructionEvent event) {
         instance = this;
         configuration = new Configuration();
-        prismManager = new PrismManager();
-        registryManager = new RegistryManager();
     }
-
+    
+    @Listener
+    public void onGamePreInitialization(GamePreInitializationEvent event) {
+        getConfiguration().loadConfiguration();
+    }
+    
     @Listener
     public void onGameInitialization(GameInitializationEvent event) {
-        getConfiguration().loadConfiguration();
+        CommandManager.registerCommand(PrismPlusCommand.class);
+        Sponge.getEventManager().registerListeners(getPluginContainer(), new CommandListener());
+        Sponge.getEventManager().registerListeners(getPluginContainer(), new InteractListener());
+        Sponge.getEventManager().registerListeners(getPluginContainer(), new InventoryListener());
+    }
+    
+    @Listener
+    public void onGamePostInitialization(GamePostInitializationEvent event) {
         getConfiguration().saveConfiguration();
-        getRegistryManager().register();
     }
-
-    @Listener(order = Order.LAST)
+    
+    @Listener(order = Order.LATE)
     public void onGameStartedServer(GameStartedServerEvent event) {
+        PrismManager.removeListener();
+        PrismManager.updateDateFormat();
+        PrismManager.purgeDatabase();
         getLogger().info("{} v{} started.", Reference.PLUGIN_NAME, Reference.PLUGIN_VERSION);
-        getPrismManager().checkVersion();
-        getPrismManager().updateDateFormat();
-        getPrismManager().purgeDatabase();
     }
-
+    
     @Listener
     public void onGameStopping(GameStoppingEvent event) {
         getLogger().info("{} v{} stopped.", Reference.PLUGIN_NAME, Reference.PLUGIN_VERSION);
     }
-
-    public void debugMessage(String message, Object... objects) {
-        if (getConfig() != null && getConfig().isDebug()) {
-            getLogger().info(message, objects);
+    
+    public void debugMessage(String format, Object... arguments) {
+        if (getConfig().map(Config::isDebug).orElse(false)) {
+            getLogger().info(format, arguments);
         }
     }
-
+    
     public static PrismPlus getInstance() {
         return instance;
     }
-
+    
+    public PluginContainer getPluginContainer() {
+        return pluginContainer;
+    }
+    
     public Logger getLogger() {
         return logger;
     }
-
+    
     public Path getPath() {
         return path;
     }
-
-    public Metrics getMetrics() {
-        return metrics;
+    
+    public GuiceObjectMapperFactory getFactory() {
+        return factory;
     }
-
+    
     public Configuration getConfiguration() {
         return configuration;
     }
-
-    public Config getConfig() {
+    
+    public Optional<Config> getConfig() {
         if (getConfiguration() != null) {
-            return getConfiguration().getConfig();
+            return Optional.ofNullable(getConfiguration().getConfig());
         }
-
-        return null;
-    }
-
-    public PrismManager getPrismManager() {
-        return prismManager;
-    }
-
-    public RegistryManager getRegistryManager() {
-        return registryManager;
+        
+        return Optional.empty();
     }
 }

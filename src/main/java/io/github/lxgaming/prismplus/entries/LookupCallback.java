@@ -24,7 +24,7 @@ import com.helion3.prism.api.records.ResultComplete;
 import com.helion3.prism.util.AsyncCallback;
 import com.helion3.prism.util.DataQueries;
 import io.github.lxgaming.prismplus.PrismPlus;
-import io.github.lxgaming.prismplus.util.SpongeHelper;
+import io.github.lxgaming.prismplus.util.Toolbox;
 import org.apache.commons.lang3.StringUtils;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.data.DataView;
@@ -45,67 +45,67 @@ import java.util.UUID;
  * @see {@link com.helion3.prism.util.Messages Messages}
  */
 public class LookupCallback extends AsyncCallback {
-
+    
     private final QuerySession querySession;
-
+    
     public LookupCallback(QuerySession querySession) {
         this.querySession = querySession;
     }
-
+    
     @Override
     public void success(List<Result> results) {
         List<Text> messages = new ArrayList<Text>();
         for (Result result : results) {
             messages.add(buildResult(result));
         }
-
+        
         if (messages.isEmpty()) {
-            getQuerySession().getCommandSource().sendMessage(Text.of(SpongeHelper.getTextPrefix(), TextColors.RED, "Nothing found. See /pr ? for help."));
+            getQuerySession().getCommandSource().sendMessage(Text.of(Toolbox.getTextPrefix(), TextColors.RED, "Nothing found. See /pr ? for help."));
             return;
         }
-
+        
         PaginationList.Builder paginationBuilder = PaginationList.builder();
         paginationBuilder.padding(Text.of(TextColors.DARK_GRAY, "="));
         paginationBuilder.linesPerPage(15);
         paginationBuilder.contents(messages);
         paginationBuilder.build().sendTo(getQuerySession().getCommandSource());
     }
-
+    
     @Override
     public void empty() {
-        getQuerySession().getCommandSource().sendMessage(Text.of(SpongeHelper.getTextPrefix(), TextColors.RED, "Nothing found. See /pr ? for help."));
+        getQuerySession().getCommandSource().sendMessage(Text.of(Toolbox.getTextPrefix(), TextColors.RED, "Nothing found. See /pr ? for help."));
     }
-
+    
     @Override
     public void error(Exception ex) {
-        getQuerySession().getCommandSource().sendMessage(Text.of(SpongeHelper.getTextPrefix(), TextColors.RED, "An error occurred. Please see the console."));
+        getQuerySession().getCommandSource().sendMessage(Text.of(Toolbox.getTextPrefix(), TextColors.RED, "An error occurred. Please see the console."));
         PrismPlus.getInstance().getLogger().error("Exception thrown by {}", getClass().getSimpleName(), ex);
         ex.printStackTrace();
     }
-
+    
     private Text buildResult(Result result) {
         Text.Builder resultMessage = Text.builder();
         Text.Builder hoverMessage = Text.builder();
-
-        hoverMessage.append(SpongeHelper.getTextPrefix(), Text.NEW_LINE);
-
+        
+        hoverMessage.append(Toolbox.getTextPrefix(), Text.NEW_LINE);
+        
         resultMessage.append(Text.of(TextColors.DARK_AQUA, result.getSourceName(), " "));
         resultMessage.append(Text.of(TextColors.WHITE, PrismPlusAction.getValue(result.getEventName()).toLowerCase(), " "));
         hoverMessage.append(Text.of(TextColors.DARK_GRAY, "Source: ", TextColors.WHITE, result.getSourceName(), Text.NEW_LINE));
         hoverMessage.append(Text.of(TextColors.DARK_GRAY, "Event: ", TextColors.WHITE, result.getEventName(), Text.NEW_LINE));
-
+        
         String quantity = result.data.getString(DataQueries.Quantity).orElse(null);
         if (StringUtils.isNotBlank(quantity)) {
             resultMessage.append(Text.of(TextColors.DARK_AQUA, quantity, " "));
             hoverMessage.append(Text.of(TextColors.DARK_GRAY, "Quantity: ", TextColors.WHITE, quantity, Text.NEW_LINE));
         }
-
+        
         String target = result.data.getString(DataQueries.Target).orElse("Unknown");
         if (StringUtils.isNotBlank(target)) {
-            resultMessage.append(Text.of(TextColors.DARK_AQUA, SpongeHelper.getItemText(target, false), " "));
+            resultMessage.append(Text.of(TextColors.DARK_AQUA, Toolbox.getItemText(target, false), " "));
             hoverMessage.append(Text.of(TextColors.DARK_GRAY, "Target: ", TextColors.WHITE, target, Text.NEW_LINE));
         }
-
+        
         if (result instanceof ResultAggregate) {
             int count = result.data.getInt(DataQueries.Count).orElse(0);
             if (count > 0) {
@@ -113,39 +113,39 @@ public class LookupCallback extends AsyncCallback {
                 hoverMessage.append(Text.of(TextColors.DARK_GRAY, "Count: ", TextColors.WHITE, count));
             }
         }
-
+        
         if (result instanceof ResultComplete) {
             ResultComplete resultComplete = (ResultComplete) result;
-
+            
             resultMessage.append(Text.of(TextColors.WHITE, resultComplete.getRelativeTime()));
             hoverMessage.append(Text.of(TextColors.DARK_GRAY, "Time: ", TextColors.WHITE, resultComplete.getTime(), Text.NEW_LINE));
-
+            
             DataView location = (DataView) resultComplete.data.get(DataQueries.Location).orElse(null);
             if (location != null) {
                 int x = location.getInt(DataQueries.X).get();
                 int y = location.getInt(DataQueries.Y).get();
                 int z = location.getInt(DataQueries.Z).get();
-
+                
                 UUID worldUniqueId = null;
                 if (location.get(DataQueries.WorldUuid).get() instanceof UUID) {
                     worldUniqueId = (UUID) location.get(DataQueries.WorldUuid).get();
                 } else {
                     worldUniqueId = UUID.fromString(location.getString(DataQueries.WorldUuid).get());
                 }
-
+                
                 World world = Sponge.getServer().getWorld(worldUniqueId).orElse(null);
                 if (getQuerySession().hasFlag(Flag.EXTENDED)) {
-                    resultMessage.append(Text.of(Text.NEW_LINE, TextColors.GRAY, " - ", SpongeHelper.getLocationText(x, y, z, world, true)));
+                    resultMessage.append(Text.of(Text.NEW_LINE, TextColors.GRAY, " - ", Toolbox.getLocationText(x, y, z, world, true)));
                 }
-
-                hoverMessage.append(Text.of(TextColors.DARK_GRAY, "Location: ", TextColors.WHITE, SpongeHelper.getLocationText(x, y, z, world, false)));
+                
+                hoverMessage.append(Text.of(TextColors.DARK_GRAY, "Location: ", TextColors.WHITE, Toolbox.getLocationText(x, y, z, world, false)));
             }
         }
-
+        
         resultMessage.onHover(TextActions.showText(hoverMessage.build()));
         return resultMessage.build();
     }
-
+    
     private QuerySession getQuerySession() {
         return querySession;
     }

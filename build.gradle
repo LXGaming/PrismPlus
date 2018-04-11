@@ -8,7 +8,7 @@ buildscript {
     }
 
     dependencies {
-        classpath("net.minecraftforge.gradle:ForgeGradle:2.2-SNAPSHOT")
+        classpath("net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT")
     }
 }
 
@@ -21,12 +21,12 @@ targetCompatibility = 1.8
 
 group = "io.github.lxgaming"
 archivesBaseName = "PrismPlus"
-version = "1.0.0"
+version = "1.1.0"
 
 minecraft {
-    version = "1.10.2-12.18.3.2511"
+    version = "1.12.2-14.23.2.2611"
     runDir = "run"
-    mappings = "snapshot_20161111"
+    mappings = "snapshot_20171003"
     makeObfSourceJar = false
 }
 
@@ -47,9 +47,9 @@ repositories {
 }
 
 dependencies {
-    provided(fileTree(dir: "./libs/", include: ["Prism-3.0.0-*.jar"]))
-    provided("org.spongepowered:spongeapi:5.2.0-SNAPSHOT")
-    annotationProcessor("org.spongepowered:spongeapi:5.2.0-SNAPSHOT")
+    provided(fileTree(dir: "./libs/", include: ["*.jar"]))
+    provided("org.spongepowered:spongecommon:7.1.0-SNAPSHOT:dev")
+    annotationProcessor("org.spongepowered:spongecommon:7.1.0-SNAPSHOT:dev")
 }
 
 jar {

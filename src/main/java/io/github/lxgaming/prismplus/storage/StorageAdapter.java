@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Alex Thomson
+ * Copyright 2018 Alex Thomson
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,19 @@
  * limitations under the License.
  */
 
-package io.github.lxgaming.prismplus.util;
+package io.github.lxgaming.prismplus.storage;
 
-public class Reference {
+import io.github.lxgaming.prismplus.PrismPlus;
+
+public abstract class StorageAdapter implements AutoCloseable {
     
-    public static final String PLUGIN_ID = "prismplus";
-    public static final String PLUGIN_NAME = "PrismPlus";
-    public static final String PLUGIN_VERSION = "1.1.0";
-    public static final String DESCRIPTION = "Additional logging for Prism";
-    public static final String AUTHORS = "LX_Gaming";
-    public static final String SOURCE = "https://github.com/LXGaming/PrismPlus";
-    public static final String WEBSITE = "https://lxgaming.github.io";
+    protected final void close(String name, AutoCloseable autoCloseable) {
+        try {
+            if (autoCloseable != null) {
+                autoCloseable.close();
+            }
+        } catch (Exception ex) {
+            PrismPlus.getInstance().getLogger().debug("Failed to close {}", name);
+        }
+    }
 }

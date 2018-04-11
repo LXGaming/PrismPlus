@@ -17,25 +17,25 @@
 package io.github.lxgaming.prismplus.commands;
 
 import io.github.lxgaming.prismplus.PrismPlus;
-import io.github.lxgaming.prismplus.util.SpongeHelper;
-import org.spongepowered.api.command.CommandException;
+import io.github.lxgaming.prismplus.util.Toolbox;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.CommandSource;
-import org.spongepowered.api.command.args.CommandContext;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.format.TextColors;
 
-public class ReloadCommand extends Command {
+import java.util.List;
 
-    @Override
-    public CommandResult execute(CommandSource src, CommandContext args) throws CommandException {
-        PrismPlus.getInstance().getConfiguration().loadConfiguration();
-        src.sendMessage(Text.of(SpongeHelper.getTextPrefix(), TextColors.GREEN, "Configuration reloaded."));
-        return CommandResult.success();
+public class ReloadCommand extends AbstractCommand {
+    
+    public ReloadCommand() {
+        addAlias("reload");
+        setPermission("prismplus.command.reload");
     }
-
+    
     @Override
-    public String getName() {
-        return "Reload";
+    public CommandResult execute(CommandSource commandSource, List<String> arguments) {
+        PrismPlus.getInstance().getConfiguration().loadConfiguration();
+        commandSource.sendMessage(Text.of(Toolbox.getTextPrefix(), TextColors.GREEN, "Configuration reloaded."));
+        return CommandResult.success();
     }
 }

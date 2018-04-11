@@ -21,47 +21,57 @@ import com.helion3.prism.Prism;
 import com.helion3.prism.storage.h2.H2StorageAdapter;
 import com.helion3.prism.util.DateUtil;
 import io.github.lxgaming.prismplus.PrismPlus;
+import io.github.lxgaming.prismplus.util.Toolbox;
+import org.apache.commons.lang3.StringUtils;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-public class H2Storage extends H2StorageAdapter {
-
-    private final String expiration;
-    private final String tablePrefix;
-
-    public H2Storage() {
-        super();
-        expiration = Prism.getConfig().getNode("storage", "expireRecords").getString();
-        tablePrefix = Prism.getConfig().getNode("db", "h2", "tablePrefix").getString();
-    }
-
+public final class H2Storage extends H2StorageAdapter {
+    
+    private final String expiration = Prism.getConfig().getNode("storage", "expireRecords").getString();
+    private final String tablePrefix = Prism.getConfig().getNode("db", "h2", "tablePrefix").getString();
+    
     public void purge() {
         PrismPlus.getInstance().getLogger().info("Purging Prism H2 database...");
-        String sql = String.format(""
-                        + "DELETE FROM `records`, `extra` "
-                        + "USING %srecords AS `records`, %sextra AS `extra` "
-                        + "WHERE `records`.`id` = `extra`.`record_id` AND `records`.`Created` <= ?;",
-                getTablePrefix(), getTablePrefix());
-
         Stopwatch stopwatch = Stopwatch.createStarted();
-        try (Connection connection = getConnection(); PreparedStatement preparedStatement = connection.prepareStatement(sql);) {
-            preparedStatement.setLong(1, DateUtil.parseTimeStringToDate(getExpiration(), false).getTime() / 1000);
-            preparedStatement.executeUpdate();
-            PrismPlus.getInstance().getLogger().info("Successfully purged Prism H2 database ({}ms).", stopwatch.stop().elapsed(TimeUnit.MILLISECONDS));
+        purgeRecords().ifPresent(count -> PrismPlus.getInstance().getLogger().info("Deleted {} records", count));
+        purgeExtra().ifPresent(count -> PrismPlus.getInstance().getLogger().info("Deleted {} extra", count));
+        PrismPlus.getInstance().getLogger().info("Finished purging Prism H2 database ({})", Toolbox.getTimeString(stopwatch.stop().elapsed(TimeUnit.MILLISECONDS)));
+    }
+    
+    private Optional<Integer> purgeExtra() {
+        try (SQLStorageAdapter storageAdapter = new SQLStorageAdapter(getConnection())) {
+            storageAdapter.prepareStatement(formatStatement("DELETE FROM `[PREFIX]extra` WHERE `[PREFIX]extra`.`record_id` NOT IN (SELECT `[PREFIX]records`.`id` FROM `[PREFIX]records`);"));
+            return Optional.of(storageAdapter.getPreparedStatement().executeUpdate());
         } catch (SQLException ex) {
-            PrismPlus.getInstance().getLogger().error("Encountered an error processing {}::purge", getClass().getSimpleName(), ex);
+            PrismPlus.getInstance().getLogger().error("Encountered an error processing {}::purgeExtra", getClass().getSimpleName());
             ex.printStackTrace();
-            stopwatch.stop();
+            return Optional.empty();
         }
     }
-
+    
+    private Optional<Integer> purgeRecords() {
+        try (SQLStorageAdapter storageAdapter = new SQLStorageAdapter(getConnection())) {
+            storageAdapter.prepareStatement(formatStatement("DELETE FROM `[PREFIX]records` WHERE `[PREFIX]records`.`created` <= ?;"));
+            storageAdapter.getPreparedStatement().setLong(1, DateUtil.parseTimeStringToDate(getExpiration(), false).getTime() / 1000);
+            return Optional.of(storageAdapter.getPreparedStatement().executeUpdate());
+        } catch (SQLException ex) {
+            PrismPlus.getInstance().getLogger().error("Encountered an error processing {}::purgeRecords", getClass().getSimpleName());
+            ex.printStackTrace();
+            return Optional.empty();
+        }
+    }
+    
+    private String formatStatement(String statement) {
+        return StringUtils.replace(statement, "[PREFIX]", getTablePrefix());
+    }
+    
     private String getExpiration() {
         return expiration;
     }
-
+    
     private String getTablePrefix() {
         return tablePrefix;
     }

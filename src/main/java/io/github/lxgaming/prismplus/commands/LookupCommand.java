@@ -17,65 +17,39 @@
 package io.github.lxgaming.prismplus.commands;
 
 import com.helion3.prism.api.query.QuerySession;
-import io.github.lxgaming.prismplus.PrismPlus;
-import io.github.lxgaming.prismplus.util.SpongeHelper;
-import org.spongepowered.api.command.CommandException;
+import io.github.lxgaming.prismplus.managers.PrismManager;
+import io.github.lxgaming.prismplus.util.Toolbox;
+import org.apache.commons.lang3.StringUtils;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.CommandSource;
-import org.spongepowered.api.command.args.CommandContext;
-import org.spongepowered.api.command.args.CommandElement;
-import org.spongepowered.api.command.args.GenericArguments;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.format.TextColors;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class LookupCommand extends Command {
-
+public class LookupCommand extends AbstractCommand {
+    
+    public LookupCommand() {
+        addAlias("lookup");
+        addAlias("l");
+        setPermission("prism.lookup");
+        setUsage("[params]");
+    }
+    
     @Override
-    public CommandResult execute(CommandSource src, CommandContext args) throws CommandException {
-        QuerySession session = new QuerySession(src);
-        String parameters = args.<String>getOne("parameters").orElse(null);
-
-        src.sendMessage(Text.of(SpongeHelper.getTextPrefix(), TextColors.WHITE, "Querying records..."));
-
+    public CommandResult execute(CommandSource commandSource, List<String> arguments) {
+        QuerySession session = new QuerySession(commandSource);
+        commandSource.sendMessage(Text.of(Toolbox.getTextPrefix(), TextColors.WHITE, "Querying records..."));
+        
         try {
-            CompletableFuture<Void> future = session.newQueryFromArguments(parameters);
-            future.thenAccept((v) -> {
-                PrismPlus.getInstance().getPrismManager().lookup(session);
-            });
+            CompletableFuture<Void> future = session.newQueryFromArguments(StringUtils.defaultIfBlank(StringUtils.join(arguments, " "), null));
+            future.thenAccept((v) -> PrismManager.lookup(session));
         } catch (Exception ex) {
-            src.sendMessage(Text.of(SpongeHelper.getTextPrefix(), TextColors.RED, "An error occurred. Please check the console."));
+            commandSource.sendMessage(Text.of(Toolbox.getTextPrefix(), TextColors.RED, "An error occurred. Please check the console."));
             ex.printStackTrace();
         }
-
+        
         return CommandResult.success();
-    }
-
-    @Override
-    public String getName() {
-        return "Lookup";
-    }
-
-    @Override
-    public String getUsage() {
-        return "[params]";
-    }
-
-    @Override
-    public List<String> getAliases() {
-        return Arrays.asList("L");
-    }
-
-    @Override
-    public String getPermission() {
-        return "prism.lookup";
-    }
-
-    @Override
-    public List<CommandElement> getArguments() {
-        return Arrays.asList(GenericArguments.optional(GenericArguments.remainingJoinedStrings(Text.of("parameters"))));
     }
 }

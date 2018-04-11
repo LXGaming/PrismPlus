@@ -17,51 +17,39 @@
 package io.github.lxgaming.prismplus.commands;
 
 import com.helion3.prism.Prism;
-import io.github.lxgaming.prismplus.util.SpongeHelper;
-import org.spongepowered.api.command.CommandException;
+import io.github.lxgaming.prismplus.util.Toolbox;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.CommandSource;
-import org.spongepowered.api.command.args.CommandContext;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.format.TextColors;
 
-import java.util.Arrays;
 import java.util.List;
 
-public class InspectCommand extends Command {
-
+public class InspectCommand extends AbstractCommand {
+    
+    public InspectCommand() {
+        addAlias("inspect");
+        addAlias("i");
+        setPermission("prism.inspect");
+    }
+    
     @Override
-    public CommandResult execute(CommandSource src, CommandContext args) throws CommandException {
-        if (!(src instanceof Player)) {
-            src.sendMessage(Text.of(SpongeHelper.getTextPrefix(), TextColors.RED, "You must be a player to use this command."));
+    public CommandResult execute(CommandSource commandSource, List<String> arguments) {
+        if (!(commandSource instanceof Player)) {
+            commandSource.sendMessage(Text.of(Toolbox.getTextPrefix(), TextColors.RED, "You must be a player to use this command."));
             return CommandResult.success();
         }
-
-        Player player = (Player) src;
+        
+        Player player = (Player) commandSource;
         if (Prism.getActiveWands().contains(player.getUniqueId())) {
             Prism.getActiveWands().remove(player.getUniqueId());
-            player.sendMessage(Text.of(SpongeHelper.getTextPrefix(), TextColors.WHITE, "Inspection wand ", TextColors.RED, "disabled", TextColors.WHITE, "."));
+            player.sendMessage(Text.of(Toolbox.getTextPrefix(), TextColors.WHITE, "Inspection wand ", TextColors.RED, "disabled", TextColors.WHITE, "."));
         } else {
             Prism.getActiveWands().add(player.getUniqueId());
-            player.sendMessage(Text.of(SpongeHelper.getTextPrefix(), TextColors.WHITE, "Inspection wand ", TextColors.GREEN, "enabled", TextColors.WHITE, "."));
+            player.sendMessage(Text.of(Toolbox.getTextPrefix(), TextColors.WHITE, "Inspection wand ", TextColors.GREEN, "enabled", TextColors.WHITE, "."));
         }
-
+        
         return CommandResult.success();
-    }
-
-    @Override
-    public String getName() {
-        return "Inspect";
-    }
-
-    @Override
-    public List<String> getAliases() {
-        return Arrays.asList("I");
-    }
-
-    @Override
-    public String getPermission() {
-        return "prism.inspect";
     }
 }

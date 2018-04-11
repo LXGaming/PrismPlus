@@ -16,93 +16,171 @@
 
 package io.github.lxgaming.prismplus.listeners;
 
+import com.helion3.prism.Prism;
 import com.helion3.prism.util.DataQueries;
 import io.github.lxgaming.prismplus.PrismPlus;
+import io.github.lxgaming.prismplus.configuration.Config;
+import io.github.lxgaming.prismplus.configuration.categories.EventCategory;
 import io.github.lxgaming.prismplus.entries.PrismPlusRecord;
-import net.minecraft.inventory.AnimalChest;
 import net.minecraft.inventory.Container;
+import net.minecraft.inventory.ContainerBeacon;
+import net.minecraft.inventory.ContainerBrewingStand;
+import net.minecraft.inventory.ContainerChest;
+import net.minecraft.inventory.ContainerDispenser;
+import net.minecraft.inventory.ContainerEnchantment;
+import net.minecraft.inventory.ContainerFurnace;
+import net.minecraft.inventory.ContainerHopper;
 import net.minecraft.inventory.ContainerHorseInventory;
-import net.minecraft.inventory.Slot;
+import net.minecraft.inventory.ContainerMerchant;
+import net.minecraft.inventory.ContainerRepair;
+import net.minecraft.inventory.ContainerShulkerBox;
+import net.minecraft.inventory.ContainerWorkbench;
+import org.spongepowered.api.entity.Entity;
+import org.spongepowered.api.entity.Item;
+import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.Order;
-import org.spongepowered.api.event.cause.Cause;
+import org.spongepowered.api.event.filter.cause.Root;
+import org.spongepowered.api.event.item.inventory.ChangeInventoryEvent;
 import org.spongepowered.api.event.item.inventory.ClickInventoryEvent;
+import org.spongepowered.api.event.item.inventory.DropItemEvent;
 import org.spongepowered.api.item.ItemTypes;
-import org.spongepowered.api.item.inventory.entity.PlayerInventory;
+import org.spongepowered.api.item.inventory.Carrier;
+import org.spongepowered.api.item.inventory.ItemStackSnapshot;
 import org.spongepowered.api.item.inventory.property.SlotIndex;
 import org.spongepowered.api.item.inventory.transaction.SlotTransaction;
 import org.spongepowered.api.item.inventory.type.CarriedInventory;
 import org.spongepowered.api.world.Locatable;
+import org.spongepowered.api.world.Location;
+import org.spongepowered.api.world.World;
 
 public class InventoryListener {
-
+    
     @Listener(order = Order.POST)
-    public void onClickInventory(ClickInventoryEvent event) {
-        if (event.isCancelled() || event.getTransactions().size() <= 0) {
+    public void onClickInventory(ClickInventoryEvent event, @Root Player player) {
+        if (event.isCancelled() || event.getTransactions().isEmpty()) {
             return;
         }
-
+        
         for (SlotTransaction slotTransaction : event.getTransactions()) {
-            writeItemTransaction(slotTransaction, event.getCause());
+            if (!(slotTransaction.getSlot().parent() instanceof CarriedInventory)) {
+                return;
+            }
+            
+            CarriedInventory<? extends Carrier> carriedInventory = (CarriedInventory<? extends Carrier>) slotTransaction.getSlot().parent();
+            if (!(carriedInventory instanceof Container) || !isVanillaContainer((Container) carriedInventory)) {
+                return;
+            }
+            
+            Location<World> location = carriedInventory.getCarrier()
+                    .filter(Locatable.class::isInstance)
+                    .map(Locatable.class::cast)
+                    .map(Locatable::getLocation)
+                    .orElse(player.getLocation());
+            
+            int index = slotTransaction.getSlot().getProperty(SlotIndex.class, "slotindex").map(SlotIndex::getValue).orElse(-1);
+            int capacity = carriedInventory.first().capacity();
+            if (index >= capacity) {
+                return;
+            }
+            
+            // Insert
+            if (slotTransaction.getFinal().getType() != ItemTypes.NONE || slotTransaction.getFinal().getQuantity() > slotTransaction.getOriginal().getQuantity()) {
+                if (PrismPlus.getInstance().getConfig().map(Config::getEventCategory).map(EventCategory::isInsert).orElse(false)) {
+                    String itemId = slotTransaction.getFinal().getType().getId();
+                    int itemQuantity = slotTransaction.getFinal().getQuantity();
+                    if (slotTransaction.getOriginal().getType() != ItemTypes.NONE) {
+                        itemQuantity -= slotTransaction.getOriginal().getQuantity();
+                    }
+                    
+                    PrismPlus.getInstance().debugMessage("Inventory insert - {} x{}", itemId, itemQuantity);
+                    PrismPlusRecord prismPlusRecord = PrismPlusRecord.create().source(event.getCause()).event("insert").build();
+                    prismPlusRecord.getDataContainer().set(DataQueries.Location, location.toContainer());
+                    prismPlusRecord.getDataContainer().set(DataQueries.Target, itemId);
+                    prismPlusRecord.getDataContainer().set(DataQueries.Quantity, itemQuantity);
+                    prismPlusRecord.save();
+                }
+            }
+            
+            // Remove
+            if (slotTransaction.getFinal().getType() == ItemTypes.NONE || slotTransaction.getFinal().getQuantity() < slotTransaction.getOriginal().getQuantity()) {
+                if (PrismPlus.getInstance().getConfig().map(Config::getEventCategory).map(EventCategory::isRemove).orElse(false)) {
+                    String itemId = slotTransaction.getOriginal().getType().getId();
+                    int itemQuantity = slotTransaction.getOriginal().getQuantity();
+                    if (slotTransaction.getFinal().getType() != ItemTypes.NONE) {
+                        itemQuantity -= slotTransaction.getFinal().getQuantity();
+                    }
+                    
+                    PrismPlus.getInstance().debugMessage("Inventory remove - {} x{}", itemId, itemQuantity);
+                    PrismPlusRecord prismPlusRecord = PrismPlusRecord.create().source(event.getCause()).event("remove").build();
+                    prismPlusRecord.getDataContainer().set(DataQueries.Location, location.toContainer());
+                    prismPlusRecord.getDataContainer().set(DataQueries.Target, itemId);
+                    prismPlusRecord.getDataContainer().set(DataQueries.Quantity, itemQuantity);
+                    prismPlusRecord.save();
+                }
+            }
         }
     }
-
-    private void writeItemTransaction(SlotTransaction slotTransaction, Cause cause) {
-        if (slotTransaction == null || !(slotTransaction.getSlot().parent() instanceof CarriedInventory) || !(slotTransaction.getSlot().parent() instanceof Container)) {
+    
+    @Listener(order = Order.POST)
+    public void onChangeInventoryPickup(ChangeInventoryEvent.Pickup event, @Root Player player) {
+        if (event.isCancelled() || event.getTransactions().isEmpty() || !Prism.listening.PICKUP) {
             return;
         }
-
-        CarriedInventory<?> carriedInventory = (CarriedInventory<?>) slotTransaction.getSlot().parent();
-        if (!carriedInventory.getCarrier().isPresent() || !(carriedInventory.getCarrier().get() instanceof Locatable)) {
-            return;
-        }
-
-        Locatable locatable = (Locatable) carriedInventory.getCarrier().get();
-        Container container = ((Container) slotTransaction.getSlot().parent());
-        SlotIndex slotIndex = slotTransaction.getSlot().getProperty(SlotIndex.class, "slotindex").orElse(null);
-        if (locatable == null || container == null || slotIndex == null) {
-            return;
-        }
-
-        Slot slot = container.inventorySlots.get(slotIndex.getValue());
-        if (slot == null || slot.inventory instanceof PlayerInventory || slot.inventory instanceof AnimalChest || slot.inventory instanceof ContainerHorseInventory) {
-            return;
-        }
-
-        // Insert
-        if (slotTransaction.getFinal().getType() != ItemTypes.NONE || slotTransaction.getFinal().getCount() > slotTransaction.getOriginal().getCount()) {
-            if (PrismPlus.getInstance().getConfig() != null && PrismPlus.getInstance().getConfig().isInsertEvent()) {
-                String itemId = slotTransaction.getFinal().getType().getId();
-                int itemQuantity = slotTransaction.getFinal().getCount();
-                if (slotTransaction.getOriginal().getType() != ItemTypes.NONE) {
-                    itemQuantity -= slotTransaction.getOriginal().getCount();
-                }
-
-                PrismPlus.getInstance().debugMessage("Inventory insert - {} x{}", itemId, itemQuantity);
-                PrismPlusRecord prismPlusRecord = PrismPlusRecord.create().source(cause).event("insert").build();
-                prismPlusRecord.getDataContainer().set(DataQueries.Location, locatable.getLocation().toContainer());
-                prismPlusRecord.getDataContainer().set(DataQueries.Target, itemId);
-                prismPlusRecord.getDataContainer().set(DataQueries.Quantity, itemQuantity);
-                prismPlusRecord.save();
+        
+        //TODO Test as it reported incorrect quantity!
+        for (SlotTransaction slotTransaction : event.getTransactions()) {
+            String itemId = slotTransaction.getFinal().getType().getId();
+            int itemQuantity = slotTransaction.getFinal().getQuantity();
+            if (slotTransaction.getOriginal().getType() != ItemTypes.NONE) {
+                itemQuantity -= slotTransaction.getOriginal().getQuantity();
             }
+            
+            
+            PrismPlus.getInstance().debugMessage("Inventory pickup - {} x{}", itemId, itemQuantity);
+            PrismPlusRecord prismPlusRecord = PrismPlusRecord.create().source(event.getCause()).event("pickup").build();
+            prismPlusRecord.getDataContainer().set(DataQueries.Location, player.getLocation().toContainer());
+            prismPlusRecord.getDataContainer().set(DataQueries.Target, itemId);
+            prismPlusRecord.getDataContainer().set(DataQueries.Quantity, itemQuantity);
+            prismPlusRecord.save();
         }
-
-        // Remove
-        if (slotTransaction.getFinal().getType() == ItemTypes.NONE || slotTransaction.getFinal().getCount() < slotTransaction.getOriginal().getCount()) {
-            if (PrismPlus.getInstance().getConfig() != null && PrismPlus.getInstance().getConfig().isRemoveEvent()) {
-                String itemId = slotTransaction.getOriginal().getType().getId();
-                int itemQuantity = slotTransaction.getOriginal().getCount();
-                if (slotTransaction.getFinal().getType() != ItemTypes.NONE) {
-                    itemQuantity -= slotTransaction.getFinal().getCount();
-                }
-
-                PrismPlus.getInstance().debugMessage("Inventory remove - {} x{}", itemId, itemQuantity);
-                PrismPlusRecord prismPlusRecord = PrismPlusRecord.create().source(cause).event("remove").build();
-                prismPlusRecord.getDataContainer().set(DataQueries.Location, locatable.getLocation().toContainer());
-                prismPlusRecord.getDataContainer().set(DataQueries.Target, itemId);
-                prismPlusRecord.getDataContainer().set(DataQueries.Quantity, itemQuantity);
-                prismPlusRecord.save();
+    }
+    
+    @Listener(order = Order.POST)
+    public void onDropItem(DropItemEvent.Dispense event, @Root Player player) {
+        if (event.isCancelled() || event.getEntities().isEmpty() || !Prism.listening.DROP) {
+            return;
+        }
+        
+        for (Entity entity : event.getEntities()) {
+            if (!(entity instanceof Item) || !((Item) entity).item().exists()) {
+                return;
             }
+            
+            //TODO Test as PICKUP reported incorrect quantity!
+            ItemStackSnapshot itemStackSnapshot = ((Item) entity).item().get();
+            
+            PrismPlus.getInstance().debugMessage("Inventory dropped - {} x{}", itemStackSnapshot.getType().getId(), itemStackSnapshot.getQuantity());
+            PrismPlusRecord prismPlusRecord = PrismPlusRecord.create().source(event.getCause()).event("dropped").build();
+            prismPlusRecord.getDataContainer().set(DataQueries.Location, player.getLocation().toContainer());
+            prismPlusRecord.getDataContainer().set(DataQueries.Target, itemStackSnapshot.getType().getId());
+            prismPlusRecord.getDataContainer().set(DataQueries.Quantity, itemStackSnapshot.getQuantity());
+            prismPlusRecord.save();
         }
+    }
+    
+    private boolean isVanillaContainer(Container container) {
+        return container instanceof ContainerBeacon
+                || container instanceof ContainerBrewingStand
+                || container instanceof ContainerChest
+                || container instanceof ContainerDispenser
+                || container instanceof ContainerEnchantment
+                || container instanceof ContainerFurnace
+                || container instanceof ContainerHopper
+                || container instanceof ContainerHorseInventory
+                || container instanceof ContainerMerchant
+                || container instanceof ContainerRepair
+                || container instanceof ContainerShulkerBox
+                || container instanceof ContainerWorkbench;
     }
 }

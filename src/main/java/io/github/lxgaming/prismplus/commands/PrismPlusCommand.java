@@ -16,51 +16,27 @@
 
 package io.github.lxgaming.prismplus.commands;
 
-import io.github.lxgaming.prismplus.util.Reference;
-import io.github.lxgaming.prismplus.util.SpongeHelper;
-import org.spongepowered.api.command.CommandException;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.CommandSource;
-import org.spongepowered.api.command.args.CommandContext;
-import org.spongepowered.api.text.Text;
-import org.spongepowered.api.text.format.TextColors;
 
-import java.util.Arrays;
 import java.util.List;
 
-public class PrismPlusCommand extends Command {
-
+public class PrismPlusCommand extends AbstractCommand {
+    
+    public PrismPlusCommand() {
+        addAlias("prismplus");
+        addAlias("pp");
+        addChild(HelpCommand.class);
+        addChild(InfoCommand.class);
+        addChild(InspectCommand.class);
+        addChild(LookupCommand.class);
+        addChild(NearCommand.class);
+        addChild(ReloadCommand.class);
+    }
+    
     @Override
-    public CommandResult execute(CommandSource src, CommandContext args) throws CommandException {
-        if (!showHelp(src, "/" + Reference.PLUGIN_NAME + " [COMMAND]")) {
-            src.sendMessage(Text.of(SpongeHelper.getTextPrefix(), TextColors.RED, "No help available!"));
-        }
-
+    public CommandResult execute(CommandSource commandSource, List<String> arguments) {
+        getHelp(commandSource).ifPresent(commandSource::sendMessage);
         return CommandResult.success();
-    }
-
-    @Override
-    public String getName() {
-        return Reference.PLUGIN_NAME;
-    }
-
-    @Override
-    public List<String> getAliases() {
-        return Arrays.asList("PP");
-    }
-
-    @Override
-    public String getPermission() {
-        return null;
-    }
-
-    @Override
-    public List<Command> getSubCommands() {
-        return Arrays.asList(
-                new InfoCommand(),
-                new InspectCommand(),
-                new LookupCommand(),
-                new NearCommand(),
-                new ReloadCommand());
     }
 }

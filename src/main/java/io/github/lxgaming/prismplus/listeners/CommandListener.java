@@ -18,6 +18,9 @@ package io.github.lxgaming.prismplus.listeners;
 
 import com.helion3.prism.util.DataQueries;
 import io.github.lxgaming.prismplus.PrismPlus;
+import io.github.lxgaming.prismplus.configuration.Config;
+import io.github.lxgaming.prismplus.configuration.categories.EventCategory;
+import io.github.lxgaming.prismplus.configuration.categories.OverrideCategory;
 import io.github.lxgaming.prismplus.entries.PrismPlusRecord;
 import io.github.lxgaming.prismplus.util.Reference;
 import org.apache.commons.lang3.StringUtils;
@@ -25,43 +28,42 @@ import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.Order;
 import org.spongepowered.api.event.command.SendCommandEvent;
-import org.spongepowered.api.event.filter.cause.First;
+import org.spongepowered.api.event.filter.cause.Root;
 
 public class CommandListener {
-
+    
     @Listener(order = Order.POST)
-    public void onSendCommand(SendCommandEvent event, @First Player player) {
-        if (PrismPlus.getInstance().getConfig() != null && PrismPlus.getInstance().getConfig().isCommandEvent()) {
+    public void onSendCommand(SendCommandEvent event, @Root Player player) {
+        if (event.isCancelled()) {
+            return;
+        }
+        
+        if (PrismPlus.getInstance().getConfig().map(Config::getEventCategory).map(EventCategory::isCommand).orElse(false)) {
             PrismPlusRecord prismPlusRecord = PrismPlusRecord.create().player(player).event("command").build();
             prismPlusRecord.getDataContainer().set(DataQueries.Location, player.getLocation().toContainer());
             prismPlusRecord.getDataContainer().set(DataQueries.Target, event.getCommand());
             prismPlusRecord.getDataContainer().set(DataQueries.Player, player.getUniqueId().toString());
             prismPlusRecord.save();
         }
-
+        
         if (redirectCommand(event.getCommand(), event.getArguments())) {
-            PrismPlus.getInstance().debugMessage("Redirecting Command.");
-            event.setCommand(Reference.PLUGIN_NAME);
+            event.setCommand(Reference.PLUGIN_ID);
         }
     }
-
+    
     private boolean redirectCommand(String command, String arguments) {
         if (StringUtils.isAnyBlank(command, arguments)) {
             return false;
         }
-
-        if (PrismPlus.getInstance().getConfig() == null || !PrismPlus.getInstance().getConfig().isCommandOverride()) {
+        
+        if (!PrismPlus.getInstance().getConfig().map(Config::getOverrideCategory).map(OverrideCategory::isCommand).orElse(false)) {
             return false;
         }
-
+        
         if (!StringUtils.equalsIgnoreCase(command, "pr") && !StringUtils.equalsIgnoreCase(command, "prism")) {
             return false;
         }
-
-        if (StringUtils.startsWithAny(arguments.toLowerCase(), "i", "inspect", "l", "lookup", "near")) {
-            return true;
-        }
-
-        return false;
+        
+        return StringUtils.startsWithAny(arguments.toLowerCase(), "i", "inspect", "l", "lookup", "near");
     }
 }

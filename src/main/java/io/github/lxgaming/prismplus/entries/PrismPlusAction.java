@@ -17,20 +17,20 @@
 package io.github.lxgaming.prismplus.entries;
 
 public enum PrismPlusAction {
-
+    
     BREAK("Broke"), PLACE("Placed"),
     DECAY("Decayed"), GROW("Grew"),
     JOIN("Joined"), QUIT("Left"),
     DEATH("Killed"),
     INSERT("Inserted"), REMOVE("Removed"),
     UNKNOWN("Unknown");
-
+    
     private final String value;
-
+    
     private PrismPlusAction(String value) {
         this.value = value;
     }
-
+    
     public static String getValue(String event) {
         try {
             return PrismPlusAction.valueOf(event.toUpperCase()).getValue();
@@ -38,7 +38,7 @@ public enum PrismPlusAction {
             return event;
         }
     }
-
+    
     public String getValue() {
         return value;
     }

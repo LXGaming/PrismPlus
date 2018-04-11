@@ -19,44 +19,32 @@ package io.github.lxgaming.prismplus.commands;
 import com.helion3.prism.Prism;
 import com.helion3.prism.api.query.ConditionGroup;
 import com.helion3.prism.api.query.QuerySession;
-import io.github.lxgaming.prismplus.PrismPlus;
-import io.github.lxgaming.prismplus.util.SpongeHelper;
-import org.spongepowered.api.command.CommandException;
+import io.github.lxgaming.prismplus.managers.PrismManager;
+import io.github.lxgaming.prismplus.util.Toolbox;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.CommandSource;
-import org.spongepowered.api.command.args.CommandContext;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.format.TextColors;
 
 import java.util.List;
 
-public class NearCommand extends Command {
-
+public class NearCommand extends AbstractCommand {
+    
+    public NearCommand() {
+        addAlias("near");
+        setPermission("prism.lookup");
+    }
+    
     @Override
-    public CommandResult execute(CommandSource src, CommandContext args) throws CommandException {
+    public CommandResult execute(CommandSource commandSource, List<String> arguments) {
         int radius = Prism.getConfig().getNode("commands", "near", "defaultRadius").getInt();
-
-        src.sendMessage(Text.of(SpongeHelper.getTextPrefix(), TextColors.WHITE, "Querying records..."));
-
-        QuerySession session = new QuerySession(src);
-        session.newQuery().addCondition(ConditionGroup.from(((Player) src).getLocation(), radius));
-        PrismPlus.getInstance().getPrismManager().lookup(session);
+        
+        commandSource.sendMessage(Text.of(Toolbox.getTextPrefix(), TextColors.WHITE, "Querying records..."));
+        
+        QuerySession session = new QuerySession(commandSource);
+        session.newQuery().addCondition(ConditionGroup.from(((Player) commandSource).getLocation(), radius));
+        PrismManager.lookup(session);
         return CommandResult.success();
-    }
-
-    @Override
-    public String getName() {
-        return "Near";
-    }
-
-    @Override
-    public List<String> getAliases() {
-        return null;
-    }
-
-    @Override
-    public String getPermission() {
-        return "prism.lookup";
     }
 }

@@ -16,35 +16,23 @@
 
 package io.github.lxgaming.prismplus.commands;
 
-import io.github.lxgaming.prismplus.util.SpongeHelper;
-import org.spongepowered.api.command.CommandException;
+import io.github.lxgaming.prismplus.util.Toolbox;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.CommandSource;
-import org.spongepowered.api.command.args.CommandContext;
 
-import java.util.Arrays;
 import java.util.List;
 
-public class InfoCommand extends Command {
-
+public class InfoCommand extends AbstractCommand {
+    
+    public InfoCommand() {
+        addAlias("info");
+        addAlias("information");
+        addAlias("version");
+    }
+    
     @Override
-    public CommandResult execute(CommandSource src, CommandContext args) throws CommandException {
-        src.sendMessage(SpongeHelper.getPluginInformation());
+    public CommandResult execute(CommandSource commandSource, List<String> arguments) {
+        commandSource.sendMessage(Toolbox.getPluginInformation());
         return CommandResult.success();
-    }
-
-    @Override
-    public String getName() {
-        return "Info";
-    }
-
-    @Override
-    public List<String> getAliases() {
-        return Arrays.asList("Information", "Version");
-    }
-
-    @Override
-    public String getPermission() {
-        return null;
     }
 }
