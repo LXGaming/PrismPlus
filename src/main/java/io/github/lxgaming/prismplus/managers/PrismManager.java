@@ -54,7 +54,7 @@ public final class PrismManager {
     public static void updateDateFormat() {
         if (isPrismAvailable()) {
             String dateFormat = Prism.getConfig().getNode("display", "dateFormat").getString();
-            if (StringUtils.isNotBlank(dateFormat) && dateFormat.equals("d/M/yy hh:mm:ss")) {
+            if (StringUtils.equals(dateFormat, "d/M/yy hh:mm:ss")) {
                 Prism.getConfig().getNode("display", "dateFormat").setValue(dateFormat + " a");
             }
         }
@@ -126,6 +126,6 @@ public final class PrismManager {
     }
     
     private static boolean isPrismAvailable() {
-        return Sponge.getPluginManager().isLoaded("prism") && Prism.getPlugin() != null && Prism.getConfig() != null;
+        return Sponge.getPluginManager().isLoaded("prism") && Prism.getPlugin() != null;
     }
 }

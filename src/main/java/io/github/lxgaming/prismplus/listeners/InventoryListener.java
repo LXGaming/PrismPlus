@@ -22,6 +22,7 @@ import io.github.lxgaming.prismplus.PrismPlus;
 import io.github.lxgaming.prismplus.configuration.Config;
 import io.github.lxgaming.prismplus.configuration.categories.EventCategory;
 import io.github.lxgaming.prismplus.entries.PrismPlusRecord;
+import io.github.lxgaming.prismplus.util.Toolbox;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.ContainerBeacon;
 import net.minecraft.inventory.ContainerBrewingStand;
@@ -47,12 +48,16 @@ import org.spongepowered.api.event.item.inventory.DropItemEvent;
 import org.spongepowered.api.item.ItemTypes;
 import org.spongepowered.api.item.inventory.Carrier;
 import org.spongepowered.api.item.inventory.ItemStackSnapshot;
+import org.spongepowered.api.item.inventory.property.InventoryTitle;
 import org.spongepowered.api.item.inventory.property.SlotIndex;
 import org.spongepowered.api.item.inventory.transaction.SlotTransaction;
 import org.spongepowered.api.item.inventory.type.CarriedInventory;
+import org.spongepowered.api.text.Text;
 import org.spongepowered.api.world.Locatable;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
+
+import java.util.Optional;
 
 public class InventoryListener {
     
@@ -72,6 +77,7 @@ public class InventoryListener {
                 return;
             }
             
+            Optional<String> inventoryTitle = carriedInventory.getProperty(InventoryTitle.class, InventoryTitle.PROPERTY_NAME).map(InventoryTitle::getValue).map(Text::toPlain);
             Location<World> location = carriedInventory.getCarrier()
                     .filter(Locatable.class::isInstance)
                     .map(Locatable.class::cast)
@@ -95,6 +101,7 @@ public class InventoryListener {
                     
                     PrismPlus.getInstance().debugMessage("Inventory insert - {} x{}", itemId, itemQuantity);
                     PrismPlusRecord prismPlusRecord = PrismPlusRecord.create().source(event.getCause()).event("insert").build();
+                    prismPlusRecord.getDataContainer().set(Toolbox.CONTAINER, inventoryTitle.orElse("Unknown") + " (" + carriedInventory.getClass().getSimpleName() + ")");
                     prismPlusRecord.getDataContainer().set(DataQueries.Location, location.toContainer());
                     prismPlusRecord.getDataContainer().set(DataQueries.Target, itemId);
                     prismPlusRecord.getDataContainer().set(DataQueries.Quantity, itemQuantity);
@@ -113,6 +120,7 @@ public class InventoryListener {
                     
                     PrismPlus.getInstance().debugMessage("Inventory remove - {} x{}", itemId, itemQuantity);
                     PrismPlusRecord prismPlusRecord = PrismPlusRecord.create().source(event.getCause()).event("remove").build();
+                    prismPlusRecord.getDataContainer().set(Toolbox.CONTAINER, inventoryTitle.orElse("Unknown") + " (" + carriedInventory.getClass().getSimpleName() + ")");
                     prismPlusRecord.getDataContainer().set(DataQueries.Location, location.toContainer());
                     prismPlusRecord.getDataContainer().set(DataQueries.Target, itemId);
                     prismPlusRecord.getDataContainer().set(DataQueries.Quantity, itemQuantity);

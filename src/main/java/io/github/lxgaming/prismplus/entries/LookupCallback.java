@@ -36,13 +36,12 @@ import org.spongepowered.api.world.World;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Customizable {@link com.helion3.prism.Prism Prism} {@link com.helion3.prism.api.records.Result Result}.
  *
- * @see {@link com.helion3.prism.util.AsyncUtil AsyncUtil}
- * @see {@link com.helion3.prism.util.Messages Messages}
+ * @see com.helion3.prism.util.AsyncUtil
+ * @see com.helion3.prism.util.Messages
  */
 public class LookupCallback extends AsyncCallback {
     
@@ -105,6 +104,11 @@ public class LookupCallback extends AsyncCallback {
             hoverMessage.append(Text.of(TextColors.DARK_GRAY, "Target: ", TextColors.WHITE, target, Text.NEW_LINE));
         }
         
+        String container = result.data.getString(Toolbox.CONTAINER).orElse(null);
+        if (StringUtils.isNotBlank(container)) {
+            hoverMessage.append(Text.of(TextColors.DARK_GRAY, "Container: ", TextColors.WHITE, container, Text.NEW_LINE));
+        }
+        
         if (result instanceof ResultAggregate) {
             int count = result.data.getInt(DataQueries.Count).orElse(0);
             if (count > 0) {
@@ -121,18 +125,10 @@ public class LookupCallback extends AsyncCallback {
             
             DataView location = (DataView) resultComplete.data.get(DataQueries.Location).orElse(null);
             if (location != null) {
-                int x = location.getInt(DataQueries.X).get();
-                int y = location.getInt(DataQueries.Y).get();
-                int z = location.getInt(DataQueries.Z).get();
-                
-                UUID worldUniqueId = null;
-                if (location.get(DataQueries.WorldUuid).get() instanceof UUID) {
-                    worldUniqueId = (UUID) location.get(DataQueries.WorldUuid).get();
-                } else {
-                    worldUniqueId = UUID.fromString(location.getString(DataQueries.WorldUuid).get());
-                }
-                
-                World world = Sponge.getServer().getWorld(worldUniqueId).orElse(null);
+                int x = location.getInt(DataQueries.X).orElse(0);
+                int y = location.getInt(DataQueries.Y).orElse(0);
+                int z = location.getInt(DataQueries.Z).orElse(0);
+                World world = location.get(DataQueries.WorldUuid).flatMap(Toolbox::getUniqueId).flatMap(Sponge.getServer()::getWorld).orElse(null);
                 if (getQuerySession().hasFlag(Flag.EXTENDED)) {
                     resultMessage.append(Text.of(Text.NEW_LINE, TextColors.GRAY, " - ", Toolbox.getLocationText(x, y, z, world, true)));
                 }

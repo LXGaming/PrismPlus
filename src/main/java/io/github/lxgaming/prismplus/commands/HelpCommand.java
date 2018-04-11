@@ -45,7 +45,7 @@ public class HelpCommand extends AbstractCommand {
         
         commandSource.sendMessage(Text.of(Toolbox.getTextPrefix()));
         for (AbstractCommand command : abstractCommand.get().getChildren()) {
-            if (!command.testPermission(commandSource)) {
+            if (command == this || !command.testPermission(commandSource)) {
                 continue;
             }
             

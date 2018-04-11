@@ -17,6 +17,7 @@
 package io.github.lxgaming.prismplus.util;
 
 import org.apache.commons.lang3.StringUtils;
+import org.spongepowered.api.data.DataQuery;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.action.TextAction;
@@ -34,10 +35,13 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Toolbox {
+    
+    public static final DataQuery CONTAINER = DataQuery.of("Container");
     
     public static Text getTextPrefix() {
         Text.Builder textBuilder = Text.builder();
@@ -142,6 +146,20 @@ public class Toolbox {
             } else {
                 stringBuilder.append(plural);
             }
+        }
+    }
+    
+    public static Optional<UUID> getUniqueId(Object uniqueId) {
+        try {
+            if (uniqueId instanceof String) {
+                return Optional.of(UUID.fromString(uniqueId.toString()));
+            } else if (uniqueId instanceof UUID) {
+                return Optional.of((UUID) uniqueId);
+            }
+            
+            return Optional.empty();
+        } catch (IllegalArgumentException ex) {
+            return Optional.empty();
         }
     }
     

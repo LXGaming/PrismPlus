@@ -36,8 +36,8 @@ public final class H2Storage extends H2StorageAdapter {
     public void purge() {
         PrismPlus.getInstance().getLogger().info("Purging Prism H2 database...");
         Stopwatch stopwatch = Stopwatch.createStarted();
-        purgeRecords().ifPresent(count -> PrismPlus.getInstance().getLogger().info("Deleted {} records", count));
-        purgeExtra().ifPresent(count -> PrismPlus.getInstance().getLogger().info("Deleted {} extra", count));
+        purgeRecords().ifPresent(count -> PrismPlus.getInstance().getLogger().info("Deleted {} records.", count));
+        purgeExtra().ifPresent(count -> PrismPlus.getInstance().getLogger().info("Deleted {} extra.", count));
         PrismPlus.getInstance().getLogger().info("Finished purging Prism H2 database ({})", Toolbox.getTimeString(stopwatch.stop().elapsed(TimeUnit.MILLISECONDS)));
     }
     
