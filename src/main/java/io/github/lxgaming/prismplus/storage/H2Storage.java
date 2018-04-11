@@ -46,8 +46,7 @@ public final class H2Storage extends H2StorageAdapter {
             storageAdapter.prepareStatement(formatStatement("DELETE FROM `[PREFIX]extra` WHERE `[PREFIX]extra`.`record_id` NOT IN (SELECT `[PREFIX]records`.`id` FROM `[PREFIX]records`);"));
             return Optional.of(storageAdapter.getPreparedStatement().executeUpdate());
         } catch (SQLException ex) {
-            PrismPlus.getInstance().getLogger().error("Encountered an error processing {}::purgeExtra", getClass().getSimpleName());
-            ex.printStackTrace();
+            PrismPlus.getInstance().getLogger().error("Encountered an error processing {}::purgeExtra", getClass().getSimpleName(), ex);
             return Optional.empty();
         }
     }
@@ -58,8 +57,7 @@ public final class H2Storage extends H2StorageAdapter {
             storageAdapter.getPreparedStatement().setLong(1, DateUtil.parseTimeStringToDate(getExpiration(), false).getTime() / 1000);
             return Optional.of(storageAdapter.getPreparedStatement().executeUpdate());
         } catch (SQLException ex) {
-            PrismPlus.getInstance().getLogger().error("Encountered an error processing {}::purgeRecords", getClass().getSimpleName());
-            ex.printStackTrace();
+            PrismPlus.getInstance().getLogger().error("Encountered an error processing {}::purgeRecords", getClass().getSimpleName(), ex);
             return Optional.empty();
         }
     }

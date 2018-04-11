@@ -128,7 +128,6 @@ public class InventoryListener {
             return;
         }
         
-        //TODO Test as it reported incorrect quantity!
         for (SlotTransaction slotTransaction : event.getTransactions()) {
             String itemId = slotTransaction.getFinal().getType().getId();
             int itemQuantity = slotTransaction.getFinal().getQuantity();
@@ -157,7 +156,6 @@ public class InventoryListener {
                 return;
             }
             
-            //TODO Test as PICKUP reported incorrect quantity!
             ItemStackSnapshot itemStackSnapshot = ((Item) entity).item().get();
             
             PrismPlus.getInstance().debugMessage("Inventory dropped - {} x{}", itemStackSnapshot.getType().getId(), itemStackSnapshot.getQuantity());

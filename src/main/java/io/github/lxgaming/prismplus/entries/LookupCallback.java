@@ -80,7 +80,6 @@ public class LookupCallback extends AsyncCallback {
     public void error(Exception ex) {
         getQuerySession().getCommandSource().sendMessage(Text.of(Toolbox.getTextPrefix(), TextColors.RED, "An error occurred. Please see the console."));
         PrismPlus.getInstance().getLogger().error("Exception thrown by {}", getClass().getSimpleName(), ex);
-        ex.printStackTrace();
     }
     
     private Text buildResult(Result result) {

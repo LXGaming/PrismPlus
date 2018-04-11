@@ -106,7 +106,6 @@ public final class PrismManager {
             asyncMethod.invoke(null, session, callback);
         } catch (Exception ex) {
             PrismPlus.getInstance().getLogger().error("Encountered an error processing {}::invokeAsync", "PrismManager", ex);
-            ex.printStackTrace();
         }
     }
     
@@ -123,7 +122,6 @@ public final class PrismManager {
             unregisterMethod.invoke(Sponge.getEventManager(), unregister);
         } catch (Exception ex) {
             PrismPlus.getInstance().getLogger().error("Encountered an error processing {}::invokeUnregister", "PrismManager", ex);
-            ex.printStackTrace();
         }
     }
     

@@ -17,6 +17,7 @@
 package io.github.lxgaming.prismplus.commands;
 
 import com.helion3.prism.api.query.QuerySession;
+import io.github.lxgaming.prismplus.PrismPlus;
 import io.github.lxgaming.prismplus.managers.PrismManager;
 import io.github.lxgaming.prismplus.util.Toolbox;
 import org.apache.commons.lang3.StringUtils;
@@ -46,8 +47,8 @@ public class LookupCommand extends AbstractCommand {
             CompletableFuture<Void> future = session.newQueryFromArguments(StringUtils.defaultIfBlank(StringUtils.join(arguments, " "), null));
             future.thenAccept((v) -> PrismManager.lookup(session));
         } catch (Exception ex) {
+            PrismPlus.getInstance().getLogger().error("Encountered an error processing {}::execute", getClass().getSimpleName(), ex);
             commandSource.sendMessage(Text.of(Toolbox.getTextPrefix(), TextColors.RED, "An error occurred. Please check the console."));
-            ex.printStackTrace();
         }
         
         return CommandResult.success();
