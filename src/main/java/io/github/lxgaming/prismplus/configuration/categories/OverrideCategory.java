@@ -25,10 +25,10 @@ public class OverrideCategory {
     @Setting(value = "command", comment = "If 'true', PrismPlus will override certain Prism commands")
     private boolean command = true;
     
-    @Setting(value = "inspect", comment = "If 'true', PrismPlus will")
+    @Setting(value = "inspect", comment = "If 'true', PrismPlus will override the inspection wand")
     private boolean inspect = true;
     
-    @Setting(value = "purge", comment = "If 'true', Records older than  in your H2 or MySQL")
+    @Setting(value = "purge", comment = "If 'true', PrismPlus will remove old records from your H2 or MySQL database")
     private boolean purge = false;
     
     public boolean isCommand() {
