@@ -26,7 +26,6 @@ import io.github.lxgaming.prismplus.listeners.InventoryListener;
 import io.github.lxgaming.prismplus.managers.CommandManager;
 import io.github.lxgaming.prismplus.managers.PrismManager;
 import io.github.lxgaming.prismplus.util.Reference;
-import ninja.leaping.configurate.objectmapping.GuiceObjectMapperFactory;
 import org.slf4j.Logger;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.config.DefaultConfig;
@@ -68,15 +67,12 @@ public class PrismPlus {
     @DefaultConfig(sharedRoot = true)
     private Path path;
     
-    @Inject
-    private GuiceObjectMapperFactory factory;
-    
     private Configuration configuration;
     
     @Listener
     public void onGameConstruction(GameConstructionEvent event) {
         instance = this;
-        configuration = new Configuration();
+        configuration = new Configuration(getPath());
     }
     
     @Listener
@@ -130,10 +126,6 @@ public class PrismPlus {
     
     public Path getPath() {
         return path;
-    }
-    
-    public GuiceObjectMapperFactory getFactory() {
-        return factory;
     }
     
     public Configuration getConfiguration() {

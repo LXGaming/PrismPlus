@@ -16,45 +16,53 @@
 
 package io.github.lxgaming.prismplus.configuration;
 
-import com.google.common.reflect.TypeToken;
 import io.github.lxgaming.prismplus.PrismPlus;
 import ninja.leaping.configurate.ConfigurationOptions;
 import ninja.leaping.configurate.commented.CommentedConfigurationNode;
 import ninja.leaping.configurate.hocon.HoconConfigurationLoader;
 import ninja.leaping.configurate.loader.ConfigurationLoader;
+import ninja.leaping.configurate.objectmapping.ObjectMapper;
 import ninja.leaping.configurate.objectmapping.ObjectMappingException;
 
 import java.io.IOException;
-import java.util.Objects;
+import java.nio.file.Path;
 
 public class Configuration {
     
     private ConfigurationLoader<CommentedConfigurationNode> configurationLoader;
-    private ConfigurationOptions configurationOptions;
+    private ObjectMapper<Config>.BoundInstance objectMapper;
     private CommentedConfigurationNode configurationNode;
     private Config config;
     
+    public Configuration(Path path) {
+        try {
+            this.configurationLoader = HoconConfigurationLoader.builder().setPath(path).build();
+            this.objectMapper = ObjectMapper.forClass(Config.class).bindToNew();
+        } catch (Exception ex) {
+            PrismPlus.getInstance().getLogger().error("Encountered an error initializing {}", getClass().getSimpleName(), ex);
+        }
+    }
+    
     public void loadConfiguration() {
         try {
-            configurationLoader = HoconConfigurationLoader.builder().setPath(PrismPlus.getInstance().getPath()).build();
-            configurationOptions = ConfigurationOptions.defaults().setObjectMapperFactory(PrismPlus.getInstance().getFactory());
-            configurationNode = getConfigurationLoader().load(getConfigurationOptions());
-            config = getConfigurationNode().getValue(TypeToken.of(Config.class), new Config());
+            configurationNode = getConfigurationLoader().load(ConfigurationOptions.defaults());
+            config = getObjectMapper().populate(getConfigurationNode());
             PrismPlus.getInstance().getLogger().info("Successfully loaded configuration file.");
         } catch (IOException | ObjectMappingException | RuntimeException ex) {
-            configurationNode = getConfigurationLoader().createEmptyNode(getConfigurationOptions());
-            PrismPlus.getInstance().getLogger().error("Encountered an error processing {}::loadConfiguration", getClass().getSimpleName(), ex);
+            configurationNode = getConfigurationLoader().createEmptyNode(ConfigurationOptions.defaults());
+            PrismPlus.getInstance().getLogger().error("Encountered an error processing {}::loadConfiguration", getClass().getSimpleName());
+            ex.printStackTrace();
         }
     }
     
     public void saveConfiguration() {
         try {
-            Objects.requireNonNull(getConfig(), "Config cannot be null");
-            getConfigurationNode().setValue(TypeToken.of(Config.class), getConfig());
+            getObjectMapper().serialize(getConfigurationNode());
             getConfigurationLoader().save(getConfigurationNode());
             PrismPlus.getInstance().getLogger().info("Successfully saved configuration file.");
         } catch (IOException | ObjectMappingException | RuntimeException ex) {
-            PrismPlus.getInstance().getLogger().error("Encountered an error processing {}::saveConfiguration", getClass().getSimpleName(), ex);
+            PrismPlus.getInstance().getLogger().error("Encountered an error processing {}::saveConfiguration", getClass().getSimpleName());
+            ex.printStackTrace();
         }
     }
     
@@ -62,8 +70,8 @@ public class Configuration {
         return configurationLoader;
     }
     
-    private ConfigurationOptions getConfigurationOptions() {
-        return configurationOptions;
+    private ObjectMapper<Config>.BoundInstance getObjectMapper() {
+        return objectMapper;
     }
     
     private CommentedConfigurationNode getConfigurationNode() {

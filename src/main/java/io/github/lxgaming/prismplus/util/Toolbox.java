@@ -33,7 +33,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -186,24 +185,21 @@ public class Toolbox {
     }
     
     @SafeVarargs
-    public static <E> ArrayList<E> newArrayList(E... elements) throws NullPointerException {
-        Objects.requireNonNull(elements);
+    public static <E> ArrayList<E> newArrayList(E... elements) {
         return Stream.of(elements).collect(Collectors.toCollection(ArrayList::new));
     }
     
     @SafeVarargs
-    public static <E> HashSet<E> newHashSet(E... elements) throws NullPointerException {
-        Objects.requireNonNull(elements);
+    public static <E> HashSet<E> newHashSet(E... elements) {
         return Stream.of(elements).collect(Collectors.toCollection(HashSet::new));
     }
     
     @SafeVarargs
-    public static <E> LinkedHashSet<E> newLinkedHashSet(E... elements) throws NullPointerException {
-        Objects.requireNonNull(elements);
+    public static <E> LinkedHashSet<E> newLinkedHashSet(E... elements) {
         return Stream.of(elements).collect(Collectors.toCollection(LinkedHashSet::new));
     }
     
     public static <K, V> HashMap<K, V> newHashMap() {
-        return new HashMap<K, V>();
+        return new HashMap<>();
     }
 }
