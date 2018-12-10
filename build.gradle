@@ -24,7 +24,7 @@ archivesBaseName = "PrismPlus"
 version = "1.1.0"
 
 minecraft {
-    version = "1.12.2-14.23.4.2703"
+    version = "1.12.2-14.23.5.2768"
     runDir = "run"
     mappings = "snapshot_20171003"
     makeObfSourceJar = false
@@ -48,15 +48,17 @@ repositories {
 
 dependencies {
     provided(fileTree(dir: "./libs/", include: ["*.jar"]))
-    provided("org.spongepowered:spongecommon:7.1.0-SNAPSHOT:dev")
-    annotationProcessor("org.spongepowered:spongecommon:7.1.0-SNAPSHOT:dev")
+    provided("org.spongepowered:spongecommon:7.1.0:dev")
+    annotationProcessor("org.spongepowered:spongecommon:7.1.0:dev")
 }
 
 jar {
     from {
-        (configurations.compile - configurations.provided).collect {
+        (configurations.compile - configurations.provided).findAll({
+            it.isDirectory() || it.name.endsWith(".jar")
+        }).collect({
             it.isDirectory() ? it : zipTree(it)
-        }
+        })
     }
 
     exclude("dummyThing")
